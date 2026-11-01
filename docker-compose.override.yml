@@ -1,0 +1,33 @@
+services:
+  traffic-generator:
+    build:
+      context: .
+      dockerfile: services/traffic-generator/Dockerfile
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: paymentlab
+      POSTGRES_USER: devfest
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PAYMENT_API_URL: http://payment-api:8000/payments
+    depends_on:
+      postgres:
+        condition: service_healthy
+      payment-api:
+        condition: service_started
+
+  payment-worker:
+    command: ["python", "-u", "supervisor.py"]
+    restart: unless-stopped
+
+  payment-api:
+    restart: unless-stopped
+
+  mock-gateway:
+    restart: unless-stopped
+
+  kafka:
+    restart: unless-stopped
+
+  postgres:
+    restart: unless-stopped

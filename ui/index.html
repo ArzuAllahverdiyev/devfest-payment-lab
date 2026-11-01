@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Payment Lab — DevFest 2026</title>
+<style>
+:root {
+  font-family: Inter, system-ui, sans-serif;
+  color: #edf2f8;
+  background: #0b1018;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1180px; margin: auto; padding: 36px 24px; }
+header, .between { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+h1 { font-size: 34px; letter-spacing: -1px; margin: 8px 0; }
+h2 { font-size: 17px; margin: 0 0 18px; }
+p { color: #96a4b9; }
+small, .muted { color: #96a4b9; }
+.eyebrow { color: #a5a0fb; font-size: 12px; font-weight: 750; letter-spacing: 2px; }
+.panel { border: 1px solid #263244; background: #111a26; border-radius: 15px; padding: 23px; margin-top: 22px; }
+.controls { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 24px; }
+button, input { font: inherit; padding: 13px; border-radius: 9px; border: 1px solid #354357; }
+input { background: #0b1420; color: white; flex: 1; min-width: 180px; }
+button { background: #635bdf; color: white; cursor: pointer; font-weight: 650; }
+button.secondary { background: #1c293a; }
+button:hover { filter: brightness(1.15); }
+.stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 15px; margin-top: 22px; }
+.stat { background: #151f2d; padding: 20px; border: 1px solid #29384a; border-radius: 12px; }
+.stat strong { display: block; font-size: 30px; margin-top: 12px; letter-spacing: -1px; }
+.good { color: #48d7aa; }
+.bad { color: #fb8585; }
+.flow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.node { flex: 1; text-align: center; padding: 20px 8px; border-radius: 10px; background: #1b2939; border: 1px solid #304056; font-weight: 650; }
+.arrow { color: #788da5; }
+.details { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.line { display: flex; justify-content: space-between; gap: 15px; padding: 13px 0; border-bottom: 1px solid #263244; }
+.status { border: 1px solid #354357; border-radius: 20px; padding: 7px 12px; font-size: 12px; }
+#error { margin-top: 12px; color: #fb8585; min-height: 20px; }
+footer { color: #7d8b9c; text-align: center; padding: 35px; font-size: 12px; }
+@media(max-width:760px) {
+  .stats,.details { grid-template-columns: 1fr 1fr; }
+  .flow { flex-wrap: wrap; }
+  .node { min-width: 95px; }
+}
+@media(max-width:450px) {
+  .stats,.details { grid-template-columns: 1fr; }
+  header { align-items: flex-start; flex-direction: column; }
+  h1 { font-size: 27px; }
+}
+
+.event-line {
+  display: flex;
+  gap: 18px;
+  border-bottom: 1px solid #263244;
+  padding: 13px 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.event-line time {
+  color: #8f9db4;
+  white-space: nowrap;
+}
+#eventList { margin-top: 12px; }
+
+
+button.active-selection {
+  background: #635bdf !important;
+  color: white !important;
+  border-color: #918bff !important;
+  box-shadow: 0 0 0 2px rgba(99,91,223,.2);
+}
+
+
+/* Permanent color for Load Payment */
+#load {
+  background: #0f766e;
+  border-color: #0f766e;
+  color: #ffffff;
+}
+
+#load:hover {
+  background: #0d9488;
+}
+
+
+/* Streaming control center */
+.stream-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+.stream-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+  color: #aab8cb;
+}
+.stream-controls select,
+.stream-controls input {
+  background: #0b1420;
+  color: white;
+  border: 1px solid #354357;
+  border-radius: 9px;
+  padding: 12px;
+  min-width: 105px;
+}
+.stream-controls input { width: 115px; flex: none; }
+#startStream { background: #0f766e; }
+#stopStream { background: #9c3845; }
+.stream-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+.stream-metric {
+  background: #0b1420;
+  border: 1px solid #29384a;
+  border-radius: 10px;
+  padding: 16px;
+}
+.stream-metric small { display: block; }
+.stream-metric strong {
+  display: block;
+  font-size: 25px;
+  margin-top: 9px;
+}
+.stream-progress {
+  height: 9px;
+  margin: 18px 0;
+  background: #29384a;
+  border-radius: 20px;
+  overflow: hidden;
+}
+#streamBar {
+  background: #48d7aa;
+  height: 100%;
+  width: 0%;
+  transition: width .35s;
+}
+#streamRecent {
+  background: #090f18;
+  color: #a9d9c9;
+  padding: 16px;
+  border-radius: 10px;
+  font: 12px/1.9 ui-monospace, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 250px;
+  overflow-y: auto;
+}
+#streamMessage {
+  color: #b7c6d8;
+  margin-top: 12px;
+  min-height: 20px;
+}
+button:disabled { opacity: .45; cursor: not-allowed; }
+@media(max-width:760px) {
+  .stream-metrics { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <div class="eyebrow">DEVFEST BAKU 2026</div>
+      <h1>Payment Lab<span style="color:#8b83ff">.</span></h1>
+      <p>Exactly-Once Is a Lie — Engineering Reliable Streaming Pipelines</p>
+    </div>
+    <span class="status" id="connection">Connecting...</span>
+  </header>
+
+  <div class="controls">
+    <input id="paymentId" aria-label="Payment ID"
+      value="PAY-DEVFEST-UNSAFE-001">
+    <button id="load">Load Payment</button>
+    <button class="secondary" id="broken">Broken Scenario</button>
+    <button class="secondary" id="protected">Protected Scenario</button>
+    <button class="secondary" id="live">Live Experiment</button>
+  </div>
+  <div id="error" role="alert"></div>
+
+
+  <section class="panel" id="streamPanel">
+    <div class="between">
+      <h2>Live Streaming Control Center</h2>
+      <span class="status" id="streamState">IDLE</span>
+    </div>
+
+    <div class="stream-controls">
+      <label>Payment rate
+        <select id="streamRate">
+          <option value="1">1 / sec</option>
+          <option value="2" selected>2 / sec</option>
+          <option value="5">5 / sec</option>
+        </select>
+      </label>
+
+      <label>Payment limit
+        <input id="streamLimit" type="number"
+               value="100" min="1" max="300">
+      </label>
+
+      <button id="startStream">▶ Start Stream</button>
+      <button id="stopStream">■ Stop Stream</button>
+    </div>
+
+    <div id="streamMessage" role="status"></div>
+
+    <div class="stream-metrics">
+      <div class="stream-metric">
+        <small>PRODUCED</small>
+        <strong id="streamProduced">0</strong>
+      </div>
+      <div class="stream-metric">
+        <small>PROCESSED</small>
+        <strong id="streamProcessed">0</strong>
+      </div>
+      <div class="stream-metric">
+        <small>KAFKA LAG</small>
+        <strong id="streamLag">—</strong>
+      </div>
+      <div class="stream-metric">
+        <small>LOG END OFFSET</small>
+        <strong id="streamOffset">—</strong>
+      </div>
+    </div>
+
+    <div class="stream-progress">
+      <div id="streamBar"></div>
+    </div>
+
+    <h2>Latest Stream Payments</h2>
+    <div id="streamRecent">No payments published yet.</div>
+  </section>
+
+
+  <section class="panel">
+    <div class="between">
+      <h2>Consumer Chaos Controls</h2>
+      <span class="status" id="workerState">Loading...</span>
+    </div>
+
+    <div class="controls">
+      <button id="workerCrash"
+        style="background:#a53647">💥 Crash Worker</button>
+      <button id="workerRecover"
+        style="background:#0f766e">↻ Recover Worker</button>
+    </div>
+
+    <p id="workerMessage">
+      Control the real Kafka consumer process.
+    </p>
+
+    <h2>Live Worker Logs</h2>
+    <div id="workerLog" role="log"
+      style="background:#090f18;padding:18px;border-radius:10px;
+      font:12px/1.8 ui-monospace,monospace;
+      white-space:pre-wrap;max-height:320px;
+      overflow:auto;color:#a9d9c9">
+      Waiting for worker logs...
+    </div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><small>EXPECTED AMOUNT</small><strong id="expected">—</strong></div>
+    <div class="stat"><small>ACTUAL CHARGED</small><strong id="actual">—</strong></div>
+    <div class="stat"><small>CHARGE COUNT</small><strong id="charges">—</strong></div>
+    <div class="stat"><small>DUPLICATES</small><strong id="duplicates">—</strong></div>
+  </section>
+
+  <section class="panel">
+    <h2>Processing Architecture</h2>
+    <div class="flow">
+      <div class="node">Payment API</div><span class="arrow">→</span>
+      <div class="node">Kafka</div><span class="arrow">→</span>
+      <div class="node">Worker</div><span class="arrow">→</span>
+      <div class="node">Gateway</div><span class="arrow">→</span>
+      <div class="node">Postgres</div>
+    </div>
+    <p><small>Architecture diagram · individual service health monitoring comes later</small></p>
+  </section>
+
+
+  <section class="panel">
+    <div class="between">
+      <h2>Live Event Console</h2>
+      <span class="status" id="experimentPhase">Loading...</span>
+    </div>
+    <div id="eventList" role="log" aria-label="Experiment events">
+      Loading experiment history...
+    </div>
+  </section>
+
+  <div class="details">
+    <section class="panel">
+      <h2>Payment State</h2>
+      <div class="line"><span class="muted">Payment ID</span><b id="pid">—</b></div>
+      <div class="line"><span class="muted">Payment status</span><b id="paymentStatus">—</b></div>
+      <div class="line"><span class="muted">Inbox status</span><b id="inbox">—</b></div>
+      <div class="line"><span class="muted">Processing attempts</span><b id="attempts">—</b></div>
+    </section>
+    <section class="panel">
+      <h2>Business Integrity</h2>
+      <div class="line"><span class="muted">Integrity result</span><b id="integrity">—</b></div>
+      <div class="line"><span class="muted">Extra charged</span><b id="extra">—</b></div>
+      <p>The payment may be marked SUCCEEDED even when a duplicate financial effect exists.</p>
+    </section>
+  </div>
+</main>
+<footer>PAYMENT LAB · Real Kafka + PostgreSQL · DevFest 2026</footer>
+
+<script>
+const $ = id => document.getElementById(id);
+let currentId = $('paymentId').value;
+
+function azn(minor) {
+  return (minor / 100).toFixed(2) + ' AZN';
+}
+
+async function loadPayment() {
+  const id = currentId.trim();
+  if (!id) return;
+  loadEvents();
+  try {
+    const response = await fetch(
+      '/api/payments/' + encodeURIComponent(id),
+      {cache: 'no-store'}
+    );
+    if (!response.ok) throw new Error('API returned HTTP ' + response.status);
+    const d = await response.json();
+
+    $('connection').textContent = '● API CONNECTED';
+    $('error').textContent = '';
+    $('expected').textContent = azn(d.expected_amount_minor);
+    $('actual').textContent = azn(d.actual_amount_minor);
+    $('actual').className = d.duplicate_count ? 'bad' : 'good';
+    $('charges').textContent = d.charge_count;
+    $('duplicates').textContent = d.duplicate_count;
+    $('duplicates').className = d.duplicate_count ? 'bad' : 'good';
+    $('pid').textContent = d.payment_id;
+    $('paymentStatus').textContent = d.payment_status;
+    $('inbox').textContent = d.inbox_status ?? '—';
+    $('attempts').textContent = d.processing_attempts;
+    $('integrity').textContent = d.duplicate_count ?
+      'DUPLICATE DETECTED' : 'NO DUPLICATE';
+    $('integrity').className = d.duplicate_count ? 'bad' : 'good';
+    $('extra').textContent = azn(
+      Math.max(0, d.actual_amount_minor - d.expected_amount_minor)
+    );
+  } catch(e) {
+    $('connection').textContent = '● API ERROR';
+    $('error').textContent = e.message;
+  }
+}
+
+
+async function loadEvents() {
+  const id = currentId.trim();
+  const list = $('eventList');
+
+  try {
+    const response = await fetch(
+      '/api/experiments/' + encodeURIComponent(id) + '/events',
+      {cache: 'no-store'}
+    );
+
+    if (id !== currentId.trim()) return;
+
+    if (response.status === 404) {
+      $('experimentPhase').textContent = 'NO EXPERIMENT';
+      list.textContent = 'No recorded experiment events for this payment.';
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error('HTTP ' + response.status);
+    }
+
+    const data = await response.json();
+    if (id !== currentId.trim()) return;
+
+    $('experimentPhase').textContent = data.phase;
+
+    const fragment = document.createDocumentFragment();
+
+    for (const event of data.events) {
+      const line = document.createElement('div');
+      line.className = 'event-line';
+
+      const time = document.createElement('time');
+      time.textContent = new Date(event.timestamp).toLocaleTimeString();
+
+      const message = document.createElement('span');
+      message.textContent =
+        '[' + event.component + '] ' +
+        event.event_type + ' — ' + event.message;
+
+      if (event.event_type === 'CRASH') message.className = 'bad';
+      if (event.event_type === 'RECOVERY') message.className = 'good';
+
+      line.append(time, message);
+      fragment.appendChild(line);
+    }
+
+    list.replaceChildren(fragment);
+
+  } catch (error) {
+    if (id === currentId.trim()) {
+      $('experimentPhase').textContent = 'EVENT API ERROR';
+      list.textContent = error.message;
+    }
+  }
+}
+
+$('live').onclick = () => {
+  currentId = 'PAY-DEVFEST-PAUSE-001';
+  $('paymentId').value = currentId;
+  loadPayment();
+};
+
+$('load').onclick = () => {
+  currentId = $('paymentId').value;
+  loadPayment();
+};
+$('broken').onclick = () => {
+  currentId = 'PAY-DEVFEST-UNSAFE-001';
+  $('paymentId').value = currentId;
+  loadPayment();
+};
+$('protected').onclick = () => {
+  currentId = 'PAY-DEVFEST-CRASH-001';
+  $('paymentId').value = currentId;
+  loadPayment();
+};
+$('paymentId').addEventListener('keydown', e => {
+  if (e.key === 'Enter') $('load').click();
+});
+
+
+const navigationButtons = ['broken', 'protected', 'live'];
+
+function setSelectedButton(selectedId) {
+  navigationButtons.forEach(id => {
+    const selected = id === selectedId;
+    $(id).classList.toggle('active-selection', selected);
+    $(id).setAttribute('aria-pressed', String(selected));
+  });
+}
+
+navigationButtons.forEach(id => {
+  $(id).addEventListener('click', () => setSelectedButton(id));
+});
+
+$('paymentId').addEventListener('input', () => {
+  setSelectedButton(null);
+});
+
+setSelectedButton('broken');
+
+loadPayment();
+setInterval(loadPayment, 3000);
+
+// Browser-controlled streaming
+let streamRequestPending = false;
+
+async function refreshStream() {
+  try {
+    const response = await fetch(
+      '/api/streams/status',
+      {cache: 'no-store'}
+    );
+
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+
+    const data = await response.json();
+    const run = data.run;
+    const kafka = data.kafka;
+
+    $('streamLag').textContent = kafka.lag ?? '—';
+    $('streamOffset').textContent = kafka.log_end_offset ?? '—';
+
+    if (!run) {
+      $('streamState').textContent = 'IDLE';
+      $('streamProduced').textContent = '0';
+      $('streamProcessed').textContent = '0';
+      $('streamBar').style.width = '0%';
+      $('startStream').disabled = streamRequestPending;
+      $('stopStream').disabled = true;
+      return;
+    }
+
+    $('streamState').textContent = run.status;
+    $('streamProduced').textContent = run.produced_count;
+    $('streamProcessed').textContent = run.processed_count;
+
+    const progress = Math.min(
+      100, 100 * run.produced_count / run.target_limit
+    );
+    $('streamBar').style.width = progress + '%';
+
+    const active = [
+      'CREATED', 'RUNNING', 'STOP_REQUESTED'
+    ].includes(run.status);
+
+    $('startStream').disabled = active || streamRequestPending;
+    $('stopStream').disabled =
+      !['CREATED', 'RUNNING'].includes(run.status) ||
+      streamRequestPending;
+
+    $('streamRecent').textContent =
+      data.recent_payments.length
+        ? data.recent_payments.map(
+            p => '[' + p.status + '] offset=' + p.offset +
+                 '  ' + p.payment_id
+          ).join('\n')
+        : 'No payments published yet.';
+
+    if (run.last_error) {
+      $('streamMessage').textContent = run.last_error;
+    }
+  } catch (error) {
+    $('streamState').textContent = 'API ERROR';
+    $('streamMessage').textContent = error.message;
+  }
+}
+
+$('startStream').onclick = async () => {
+  if (streamRequestPending) return;
+
+  const rate = Number($('streamRate').value);
+  const limit = Number($('streamLimit').value);
+
+  if (!Number.isInteger(limit) || limit < 1 || limit > 300) {
+    $('streamMessage').textContent = 'Limit must be 1–300.';
+    return;
+  }
+
+  streamRequestPending = true;
+  $('startStream').disabled = true;
+  $('streamMessage').textContent = 'Starting stream...';
+
+  try {
+    const response = await fetch('/api/streams/start', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        rate_per_sec: rate,
+        target_limit: limit
+      })
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.detail || 'Start failed');
+    }
+
+    $('streamMessage').textContent =
+      'Stream started: ' + result.run_id;
+  } catch (error) {
+    $('streamMessage').textContent = error.message;
+  } finally {
+    streamRequestPending = false;
+    await refreshStream();
+  }
+};
+
+$('stopStream').onclick = async () => {
+  if (streamRequestPending) return;
+
+  streamRequestPending = true;
+  $('stopStream').disabled = true;
+  $('streamMessage').textContent = 'Stopping stream...';
+
+  try {
+    const response = await fetch('/api/streams/stop', {
+      method: 'POST'
+    });
+    const result = await response.json();
+
+    if (!response.ok) throw new Error('Stop failed');
+
+    $('streamMessage').textContent = result.status;
+  } catch (error) {
+    $('streamMessage').textContent = error.message;
+  } finally {
+    streamRequestPending = false;
+    await refreshStream();
+  }
+};
+
+refreshStream();
+setInterval(refreshStream, 2000);
+
+
+// Live consumer control and logs
+let workerCommandPending = false;
+
+async function refreshWorker() {
+  try {
+    const response = await fetch(
+      '/api/worker/status', {cache: 'no-store'}
+    );
+
+    if (!response.ok) throw new Error('Worker API unavailable');
+
+    const data = await response.json();
+    $('workerState').textContent = data.actual_state;
+
+    $('workerCrash').disabled =
+      workerCommandPending || data.desired_state === 'STOPPED';
+
+    $('workerRecover').disabled =
+      workerCommandPending || data.desired_state === 'RUNNING';
+
+    const lines = data.logs.map(log => {
+      const time = new Date(log.timestamp)
+        .toLocaleTimeString();
+
+      return time + ' [' + log.component + '] ' + log.message;
+    });
+
+    $('workerLog').textContent = lines.join('\\n') ||
+      'No worker logs recorded yet.';
+
+  } catch (error) {
+    $('workerState').textContent = 'API ERROR';
+    $('workerMessage').textContent = error.message;
+  }
+}
+
+async function workerCommand(action) {
+  if (workerCommandPending) return;
+
+  workerCommandPending = true;
+  $('workerCrash').disabled = true;
+  $('workerRecover').disabled = true;
+
+  try {
+    const response = await fetch(
+      '/api/worker/' + action, {method: 'POST'}
+    );
+
+    if (!response.ok) throw new Error('Command failed');
+
+    $('workerMessage').textContent =
+      action.toUpperCase() + ' command submitted';
+  } catch (error) {
+    $('workerMessage').textContent = error.message;
+  } finally {
+    workerCommandPending = false;
+    await refreshWorker();
+  }
+}
+
+$('workerCrash').onclick = () => workerCommand('crash');
+$('workerRecover').onclick = () => workerCommand('recover');
+
+refreshWorker();
+setInterval(refreshWorker, 1500);
+
+</script>
+</body>
+</html>
